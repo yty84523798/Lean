@@ -22,7 +22,7 @@ using QuantConnect.Data.Market;
 using QuantConnect.Util;
 using QuantConnect.Logging;
 using System.Globalization;
-using QuantConnect.Data;
+using QuantConnect.Securities.Future;
 
 namespace QuantConnect.ToolBox.AlgoSeekFuturesConverter
 {
@@ -226,10 +226,11 @@ namespace QuantConnect.ToolBox.AlgoSeekFuturesConverter
                 var underlying = parsed.Underlying;
                 var expirationYearShort = parsed.ExpirationYearShort;
                 var expirationMonth = parsed.ExpirationMonth;
-
                 var expirationYear = GetExpirationYear(time, expirationYearShort);
-                var expirationYearMonth = new DateTime(expirationYear, expirationMonth, DateTime.DaysInMonth(expirationYear, expirationMonth));
-                var symbol = Symbol.CreateFuture(underlying, Market.USA, expirationYearMonth);
+
+                var expiryFunc = FuturesExpiryFunctions.FuturesExpiryFunction(underlying);
+                var expiryDate = expiryFunc(new DateTime(expirationYear, expirationMonth, 1));
+                var symbol = Symbol.CreateFuture(underlying, Market.USA, expiryDate);
 
                 // All futures but VIX are delivered with a scale factor of 10000000000.
                 var scaleFactor = symbol.ID.Symbol == "VX" ? decimal.One : 10000000000m;
