@@ -260,6 +260,7 @@ namespace QuantConnect.AlgorithmFactory
                         return false;
                     }
                 }
+                Log.Trace("Loader.TryCreateILAlgorithm(): Creating instance...");
                 //Load the assembly into this AppDomain:
                 algorithmInstance = (IAlgorithm)assembly.CreateInstance(types[0], true);
 
@@ -299,7 +300,7 @@ namespace QuantConnect.AlgorithmFactory
                 Type[] assemblyTypes;
                 try
                 {
-                    assemblyTypes = assembly.GetTypes();
+                    assemblyTypes = assembly.GetExportedTypes();
                 }
                 catch (ReflectionTypeLoadException e)
                 {
@@ -327,6 +328,7 @@ namespace QuantConnect.AlgorithmFactory
                 Log.Error(err);
             }
 
+            Log.Trace($"Loader.TryCreateILAlgorithm(): type count found {types.Count}");
             return types;
         }
 

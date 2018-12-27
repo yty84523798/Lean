@@ -337,9 +337,13 @@ namespace QuantConnect
         {
             if (mapSymbol)
             {
+                Log.Trace("SecurityIdentifier.GenerateEquity(): Getting IMapFileProvider");
                 mapFileProvider = mapFileProvider ?? Composer.Instance.GetExportedValueByTypeName<IMapFileProvider>(MapFileProviderTypeName);
+                Log.Trace($"SecurityIdentifier.GenerateEquity(): Getting {market} market");
                 var resolver = mapFileProvider.Get(market);
+                Log.Trace("SecurityIdentifier.GenerateEquity(): ResolveMapFile");
                 var mapFile = resolver.ResolveMapFile(symbol, DateTime.Today);
+                Log.Trace("SecurityIdentifier.GenerateEquity(): ResolveMapFile done");
                 var firstDate = mapFile.FirstDate;
                 if (mapFile.Any())
                 {

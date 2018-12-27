@@ -16,9 +16,12 @@
 
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using QuantConnect.Logging;
 using QuantConnect.Util;
 
 namespace QuantConnect.Data.Auxiliary
@@ -29,8 +32,8 @@ namespace QuantConnect.Data.Auxiliary
     /// </summary>
     public class MapFileResolver : IEnumerable<MapFile>
     {
-        private readonly Dictionary<string, MapFile> _mapFilesByPermtick;
-        private readonly Dictionary<string, SortedList<DateTime, MapFileRowEntry>> _bySymbol;
+        private readonly ConcurrentDictionary<string, MapFile> _mapFilesByPermtick;
+        private readonly ConcurrentDictionary<string, SortedList<DateTime, MapFileRowEntry>> _bySymbol;
 
         /// <summary>
         /// Gets an empty <see cref="MapFileResolver"/>, that is an instance that contains
@@ -45,39 +48,44 @@ namespace QuantConnect.Data.Auxiliary
         /// <param name="mapFiles">The data used to initialize this resolver.</param>
         public MapFileResolver(IEnumerable<MapFile> mapFiles)
         {
-            _mapFilesByPermtick = new Dictionary<string, MapFile>(StringComparer.InvariantCultureIgnoreCase);
-            _bySymbol = new Dictionary<string, SortedList<DateTime, MapFileRowEntry>>(StringComparer.InvariantCultureIgnoreCase);
+            _mapFilesByPermtick = new ConcurrentDictionary<string, MapFile>(StringComparer.InvariantCultureIgnoreCase);
+            _bySymbol = new ConcurrentDictionary<string, SortedList<DateTime, MapFileRowEntry>>(StringComparer.InvariantCultureIgnoreCase);
 
-            foreach (var mapFile in mapFiles)
-            {
-                // add to our by path map
-                _mapFilesByPermtick.Add(mapFile.Permtick, mapFile);
-
-                foreach (var row in mapFile)
+            Log.Trace("MapFileResolver() start");
+            Parallel.ForEach(
+                mapFiles,
+                mapFile =>
                 {
-                    SortedList<DateTime, MapFileRowEntry> entries;
-                    var mapFileRowEntry = new MapFileRowEntry(mapFile.Permtick, row);
+                    // add to our by path map
+                    _mapFilesByPermtick.TryAdd(mapFile.Permtick, mapFile);
 
-                    if (!_bySymbol.TryGetValue(row.MappedSymbol, out entries))
+                    foreach (var row in mapFile)
                     {
-                        entries = new SortedList<DateTime, MapFileRowEntry>();
-                        _bySymbol[row.MappedSymbol] = entries;
-                    }
+                        SortedList<DateTime, MapFileRowEntry> entries;
+                        var mapFileRowEntry = new MapFileRowEntry(mapFile.Permtick, row);
 
-                    if (entries.ContainsKey(mapFileRowEntry.MapFileRow.Date))
-                    {
-                        // check to verify it' the same data
-                        if (!entries[mapFileRowEntry.MapFileRow.Date].Equals(mapFileRowEntry))
+                        if (!_bySymbol.TryGetValue(row.MappedSymbol, out entries))
                         {
-                            throw new Exception("Attempted to assign different history for symbol.");
+                            entries = new SortedList<DateTime, MapFileRowEntry>();
+                            _bySymbol[row.MappedSymbol] = entries;
+                        }
+
+                        if (entries.ContainsKey(mapFileRowEntry.MapFileRow.Date))
+                        {
+                            // check to verify it' the same data
+                            if (!entries[mapFileRowEntry.MapFileRow.Date].Equals(mapFileRowEntry))
+                            {
+                                throw new Exception("Attempted to assign different history for symbol.");
+                            }
+                        }
+                        else
+                        {
+                            entries.Add(mapFileRowEntry.MapFileRow.Date, mapFileRowEntry);
                         }
                     }
-                    else
-                    {
-                        entries.Add(mapFileRowEntry.MapFileRow.Date, mapFileRowEntry);
-                    }
                 }
-            }
+            );
+            Log.Trace("MapFileResolver() end");
         }
 
         /// <summary>
