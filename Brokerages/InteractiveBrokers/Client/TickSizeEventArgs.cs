@@ -23,7 +23,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers.Client
         /// <summary>
         /// The actual size.
         /// </summary>
-        public int Size { get; private set; }
+        public int Size { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TickSizeEventArgs"/> class

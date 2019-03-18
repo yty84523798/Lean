@@ -883,7 +883,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
             ContractDetails details;
             if (_contractDetails.TryGetValue(GetUniqueKey(contract), out details))
             {
-                return details.Summary.PrimaryExch;
+                return details.Contract.PrimaryExch;
             }
 
             details = GetContractDetails(contract);
@@ -893,7 +893,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
                 return null;
             }
 
-            return details.Summary.PrimaryExch;
+            return details.Contract.PrimaryExch;
         }
 
         private string GetTradingClass(Contract contract)
@@ -901,7 +901,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
             ContractDetails details;
             if (_contractDetails.TryGetValue(GetUniqueKey(contract), out details))
             {
-                return details.Summary.TradingClass;
+                return details.Contract.TradingClass;
             }
 
             details = GetContractDetails(contract);
@@ -911,7 +911,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
                 return null;
             }
 
-            return details.Summary.TradingClass;
+            return details.Contract.TradingClass;
         }
 
         private decimal GetMinTick(Contract contract)
@@ -982,7 +982,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
 
             // sorting list of available contracts by exchange priority, taking the top 1
             return contractDetails
-                    .Select(details => details.Summary.Exchange)
+                    .Select(details => details.Contract.Exchange)
                     .OrderByDescending(e => Array.IndexOf(exchanges, e))
                     .FirstOrDefault();
         }
@@ -2560,7 +2560,7 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
                 // filtering results
                 var filteredResults =
                     results
-                        .Select(x => x.Summary)
+                        .Select(x => x.Contract)
                         .GroupBy(x => x.Exchange)
                         .OrderByDescending(g => exchangeFilter(g.Key))
                         .FirstOrDefault();
