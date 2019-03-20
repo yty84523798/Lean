@@ -22,12 +22,16 @@ using QuantConnect.Data.UniverseSelection;
 namespace QuantConnect.Algorithm.Framework.Portfolio
 {
     /// <summary>
-    /// Provides an implementation of <see cref="IPortfolioConstructionModel"/> that gives equal weighting to all
-    /// securities. The target percent holdings of each security is 1/N where N is the number of securities. For
-    /// insights of direction <see cref="InsightDirection.Up"/>, long targets are returned and for insights of direction
+    /// Provides an implementation of <see cref="IPortfolioConstructionModel"/> that generates percent targets based on the
+    /// <see cref="Insight.Weight"/>. The target percent holdings of each Symbol is given by the <see cref="Insight.Weight"/>
+    /// from the last active <see cref="Insight"/> for that symbol.
+    /// For insights of direction <see cref="InsightDirection.Up"/>, long targets are returned and for insights of direction
     /// <see cref="InsightDirection.Down"/>, short targets are returned.
+    /// If the sum of all the last active <see cref="Insight"/> per symbol is bigger than 1, it will factor down each target
+    /// percent holdings proportionally so the sum is 1.
+    /// It will ignore <see cref="Insight"/> that have no <see cref="Insight.Weight"/> value.
     /// </summary>
-    public class EqualWeightingPortfolioConstructionModel : PortfolioConstructionModel
+    public class InsightWeightingPortfolioConstructionModel : PortfolioConstructionModel
     {
         private DateTime _rebalancingTime;
         private readonly TimeSpan _rebalancingPeriod;
@@ -36,10 +40,10 @@ namespace QuantConnect.Algorithm.Framework.Portfolio
         private DateTime? _nextExpiryTime;
 
         /// <summary>
-        /// Initialize a new instance of <see cref="EqualWeightingPortfolioConstructionModel"/>
+        /// Initialize a new instance of <see cref="InsightWeightingPortfolioConstructionModel"/>
         /// </summary>
         /// <param name="resolution">Rebalancing frequency</param>
-        public EqualWeightingPortfolioConstructionModel(Resolution resolution = Resolution.Daily)
+        public InsightWeightingPortfolioConstructionModel(Resolution resolution = Resolution.Daily)
         {
             _rebalancingPeriod = resolution.ToTimeSpan();
         }
@@ -62,7 +66,8 @@ namespace QuantConnect.Algorithm.Framework.Portfolio
                 return targets;
             }
 
-            _insightCollection.AddRange(insights);
+            // Ignore insights that don't have Weight value
+            _insightCollection.AddRange(insights.Where(insight => insight.Weight.HasValue));
 
             // Create flatten target for each security that was removed from the universe
             if (_removedSymbols != null)
@@ -76,19 +81,23 @@ namespace QuantConnect.Algorithm.Framework.Portfolio
             var activeInsights = _insightCollection.GetActiveInsights(algorithm.UtcTime);
 
             // Get the last generated active insight for each symbol
-            var lastActiveInsights = from insight in activeInsights
-                                     group insight by insight.Symbol into g
-                                     select g.OrderBy(x => x.GeneratedTimeUtc).Last();
+            var lastActiveInsights = (from insight in activeInsights
+                                    group insight by insight.Symbol into g
+                                    select g.OrderBy(x => x.GeneratedTimeUtc).Last()).ToList();
 
-            // give equal weighting to each security
-            var count = lastActiveInsights.Count(x => x.Direction != InsightDirection.Flat);
-            var percent = count == 0 ? 0 : 1m / count;
+            // We will adjust weights proportionally in case the sum is > 1 so it sums to 1.
+            var weightSums = lastActiveInsights.Sum(insight => insight.Weight.Value);
+            var weightFactor = 1.0;
+            if (weightSums > 1)
+            {
+                weightFactor = 1 / weightSums;
+            }
 
             var errorSymbols = new HashSet<Symbol>();
 
             foreach (var insight in lastActiveInsights)
             {
-                var target = PortfolioTarget.Percent(algorithm, insight.Symbol, (int) insight.Direction * percent);
+                var target = PortfolioTarget.Percent(algorithm, insight.Symbol, (int)insight.Direction * insight.Weight.Value * weightFactor);
                 if (target != null)
                 {
                     targets.Add(target);

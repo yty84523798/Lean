@@ -177,6 +177,7 @@
     <Compile Include="Algorithm\Framework\Execution\StandardDeviationExecutionModelTests.cs" />
     <Compile Include="Algorithm\Framework\InsightTests.cs" />
     <Compile Include="Algorithm\Framework\Portfolio\BlackLittermanOptimizationPortfolioConstructionModelTests.cs" />
+    <Compile Include="Algorithm\Framework\Portfolio\InsightWeightingPortfolioConstructionModelTests.cs" />
     <Compile Include="Algorithm\Framework\Portfolio\PortfolioTargetCollectionTests.cs" />
     <Compile Include="Algorithm\Framework\Portfolio\EqualWeightingPortfolioConstructionModelTests.cs" />
     <Compile Include="Algorithm\Framework\Portfolio\PortfolioTargetTests.cs" />

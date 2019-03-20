@@ -138,6 +138,7 @@
     <Compile Include="CoarseNoLookAheadBiasAlgorithm.cs" />
     <Compile Include="HistoryWithSymbolChangesRegressionAlgorithm.cs" />
     <Compile Include="FeeModelNotUsingAccountCurrency.cs" />
+    <Compile Include="InsightWeightingFrameworkAlgorithm.cs" />
     <Compile Include="MaximumPortfolioDrawdownFrameworkAlgorithm.cs" />
     <Compile Include="CompositeRiskManagementModelFrameworkAlgorithm.cs" />
     <Compile Include="ProcessSplitSymbolsRegressionAlgorithm.cs" />
