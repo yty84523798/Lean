@@ -102,6 +102,11 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         public double? Confidence { get; private set; }
 
         /// <summary>
+        /// Gets the portfolio weight of this insight
+        /// </summary>
+        public double? Weight { get; private set; }
+
+        /// <summary>
         /// Gets the most recent scores for this insight
         /// </summary>
         public InsightScore Score { get; private set; }
@@ -153,7 +158,8 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="magnitude">The predicted magnitude as a percentage change</param>
         /// <param name="confidence">The confidence in this insight</param>
         /// <param name="sourceModel">An identifier defining the model that generated this insight</param>
-        public Insight(Symbol symbol, TimeSpan period, InsightType type, InsightDirection direction, double? magnitude, double? confidence, string sourceModel = null)
+        /// <param name="weight">The portfolio weight of this insight</param>
+        public Insight(Symbol symbol, TimeSpan period, InsightType type, InsightDirection direction, double? magnitude, double? confidence, string sourceModel = null, double? weight = null)
         {
             Id = Guid.NewGuid();
             Score = new InsightScore();
@@ -167,6 +173,7 @@ namespace QuantConnect.Algorithm.Framework.Alphas
             // Optional
             Magnitude = magnitude;
             Confidence = confidence;
+            Weight = weight;
 
             _periodSpecification = new TimeSpanPeriodSpecification(period);
         }
@@ -184,8 +191,9 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="magnitude">The predicted magnitude as a percentage change</param>
         /// <param name="confidence">The confidence in this insight</param>
         /// <param name="sourceModel">An identifier defining the model that generated this insight</param>
-        public Insight(DateTime generatedTimeUtc, Symbol symbol, TimeSpan period, InsightType type, InsightDirection direction, double? magnitude, double? confidence, string sourceModel = null)
-            : this(symbol, period, type, direction, magnitude, confidence, sourceModel)
+        /// <param name="weight">The portfolio weight of this insight</param>
+        public Insight(DateTime generatedTimeUtc, Symbol symbol, TimeSpan period, InsightType type, InsightDirection direction, double? magnitude, double? confidence, string sourceModel = null, double? weight = null)
+            : this(symbol, period, type, direction, magnitude, confidence, sourceModel, weight)
         {
             GeneratedTimeUtc = generatedTimeUtc;
             CloseTimeUtc = generatedTimeUtc + period;
@@ -201,7 +209,8 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="magnitude">The predicted magnitude as a percentage change</param>
         /// <param name="confidence">The confidence in this insight</param>
         /// <param name="sourceModel">An identifier defining the model that generated this insight</param>
-        private Insight(Symbol symbol, IPeriodSpecification periodSpec, InsightType type, InsightDirection direction, double? magnitude, double? confidence, string sourceModel = null)
+        /// <param name="weight">The portfolio weight of this insight</param>
+        private Insight(Symbol symbol, IPeriodSpecification periodSpec, InsightType type, InsightDirection direction, double? magnitude, double? confidence, string sourceModel = null, double? weight = null)
         {
             Id = Guid.NewGuid();
             Score = new InsightScore();
@@ -214,6 +223,7 @@ namespace QuantConnect.Algorithm.Framework.Alphas
             // Optional
             Magnitude = magnitude;
             Confidence = confidence;
+            Weight = weight;
 
             _periodSpecification = periodSpec;
 
@@ -246,7 +256,7 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <returns>A new insight with identical values, but new instances</returns>
         public Insight Clone()
         {
-            return new Insight(Symbol, Period, Type, Direction, Magnitude, Confidence)
+            return new Insight(Symbol, Period, Type, Direction, Magnitude, Confidence, weight:Weight)
             {
                 GeneratedTimeUtc = GeneratedTimeUtc,
                 CloseTimeUtc = CloseTimeUtc,
@@ -269,8 +279,9 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="magnitude">The predicted magnitude as a percent change</param>
         /// <param name="confidence">The confidence in this insight</param>
         /// <param name="sourceModel">The model generating this insight</param>
+        /// <param name="weight">The portfolio weight of this insight</param>
         /// <returns>A new insight object for the specified parameters</returns>
-        public static Insight Price(Symbol symbol, Resolution resolution, int barCount, InsightDirection direction, double? magnitude = null, double? confidence = null, string sourceModel = null)
+        public static Insight Price(Symbol symbol, Resolution resolution, int barCount, InsightDirection direction, double? magnitude = null, double? confidence = null, string sourceModel = null, double? weight = null)
         {
             if (barCount < 1)
             {
@@ -278,7 +289,7 @@ namespace QuantConnect.Algorithm.Framework.Alphas
             }
 
             var spec = new ResolutionBarCountPeriodSpecification(resolution, barCount);
-            return new Insight(symbol, spec, InsightType.Price, direction, magnitude, confidence, sourceModel);
+            return new Insight(symbol, spec, InsightType.Price, direction, magnitude, confidence, sourceModel, weight);
         }
 
         /// <summary>
@@ -290,11 +301,12 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="magnitude">The predicted magnitude as a percent change</param>
         /// <param name="confidence">The confidence in this insight</param>
         /// <param name="sourceModel">The model generating this insight</param>
+        /// <param name="weight">The portfolio weight of this insight</param>
         /// <returns>A new insight object for the specified parameters</returns>
-        public static Insight Price(Symbol symbol, DateTime closeTimeLocal, InsightDirection direction, double? magnitude = null, double? confidence = null, string sourceModel = null)
+        public static Insight Price(Symbol symbol, DateTime closeTimeLocal, InsightDirection direction, double? magnitude = null, double? confidence = null, string sourceModel = null, double? weight = null)
         {
             var spec = new CloseTimePeriodSpecification(closeTimeLocal);
-            return new Insight(symbol, spec, InsightType.Price, direction, magnitude, confidence, sourceModel);
+            return new Insight(symbol, spec, InsightType.Price, direction, magnitude, confidence, sourceModel, weight);
         }
 
         /// <summary>
@@ -306,8 +318,9 @@ namespace QuantConnect.Algorithm.Framework.Alphas
         /// <param name="magnitude">The predicted magnitude as a percent change</param>
         /// <param name="confidence">The confidence in this insight</param>
         /// <param name="sourceModel">The model generating this insight</param>
+        /// <param name="weight">The portfolio weight of this insight</param>
         /// <returns>A new insight object for the specified parameters</returns>
-        public static Insight Price(Symbol symbol, TimeSpan period, InsightDirection direction, double? magnitude = null, double? confidence = null, string sourceModel = null)
+        public static Insight Price(Symbol symbol, TimeSpan period, InsightDirection direction, double? magnitude = null, double? confidence = null, string sourceModel = null, double? weight = null)
         {
             if (period < Time.OneSecond)
             {
@@ -315,7 +328,7 @@ namespace QuantConnect.Algorithm.Framework.Alphas
             }
 
             var spec = new TimeSpanPeriodSpecification(period);
-            return new Insight(symbol, spec, InsightType.Price, direction, magnitude, confidence, sourceModel);
+            return new Insight(symbol, spec, InsightType.Price, direction, magnitude, confidence, sourceModel, weight);
         }
 
         /// <summary>
@@ -363,7 +376,8 @@ namespace QuantConnect.Algorithm.Framework.Alphas
                 serializedInsight.Direction,
                 serializedInsight.Magnitude,
                 serializedInsight.Confidence,
-                serializedInsight.SourceModel
+                serializedInsight.SourceModel,
+                serializedInsight.Weight
             )
             {
                 Id = Guid.Parse(serializedInsight.Id),
@@ -543,6 +557,10 @@ namespace QuantConnect.Algorithm.Framework.Alphas
             if (Confidence.HasValue)
             {
                 str += $" with {Math.Round(100 * Confidence.Value, 1)}% confidence";
+            }
+            if (Weight.HasValue)
+            {
+                str += $" and {Math.Round(100 * Weight.Value, 1)}% weight";
             }
 
             return str;
