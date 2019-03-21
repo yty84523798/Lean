@@ -2315,6 +2315,8 @@ namespace QuantConnect.Brokerages.InteractiveBrokers
 
                                 Symbol s;
                                 _subscribedTickets.TryRemove(id, out s);
+
+                                Log.Trace("InteractiveBrokersBrokerage.Unsubscribe(): Unsubscribe Processed: {0} # {1}", symbol.Value, id);
                             }
                         }
                     }
