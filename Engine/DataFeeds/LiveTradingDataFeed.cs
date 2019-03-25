@@ -257,7 +257,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds
                         case TickType.Trade:
                         default:
                             var tradeBarAggregator = new TradeBarBuilderEnumerator(request.Configuration.Increment, request.Security.Exchange.TimeZone, _timeProvider);
-                            var auxDataEnumerator = new EnqueueableEnumerator<BaseData>();
+                            var auxDataEnumerator = new LiveAuxiliaryDataEnumerator(request.Security.Exchange.TimeZone, _timeProvider);
 
                             _exchange.AddDataHandler(request.Configuration.Symbol, data =>
                             {

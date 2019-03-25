@@ -31,7 +31,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
     {
         private readonly ITimeProvider _timeProvider;
         private readonly DateTimeZone _exchangeTimeZone;
-        private readonly List<IEnumerator<BaseData>> _enumerators;
+        private readonly IEnumerator<BaseData>[] _enumerators;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LiveBaseDataSynchronizingEnumerator"/> class
@@ -43,10 +43,13 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
         {
             _timeProvider = timeProvider;
             _exchangeTimeZone = exchangeTimeZone;
-            _enumerators = enumerators.ToList();
+            _enumerators = enumerators;
 
             // prime enumerators
-            _enumerators.ForEach(x => x.MoveNext());
+            foreach (var enumerator in _enumerators)
+            {
+                enumerator.MoveNext();
+            }
         }
 
         /// <summary>
@@ -57,24 +60,18 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
         public bool MoveNext()
         {
             // use manual time provider from LiveTradingDataFeed
-            var frontier = _timeProvider.GetUtcNow().ConvertFromUtc(_exchangeTimeZone);
+            var frontierUtc = _timeProvider.GetUtcNow();
 
             // check if any enumerator is ready to emit
-            if (DataPointEmitted(_enumerators, frontier))
+            if (DataPointEmitted(_enumerators, frontierUtc))
                 return true;
 
             // advance enumerators with no current data
-            var enumeratorsAdvanced = new List<IEnumerator<BaseData>>();
-            _enumerators.ForEach(x =>
-            {
-                if (x.Current == null && x.MoveNext())
-                {
-                    enumeratorsAdvanced.Add(x);
-                }
-            });
+            var enumeratorsAdvanced = new List<IEnumerator<BaseData>>(_enumerators.Length);
+            enumeratorsAdvanced.AddRange(_enumerators.Where(enumerator => enumerator.Current == null && enumerator.MoveNext()));
 
             // check if any enumerator is ready to emit
-            if (DataPointEmitted(enumeratorsAdvanced, frontier))
+            if (DataPointEmitted(enumeratorsAdvanced, frontierUtc))
                 return true;
 
             Current = null;
@@ -90,7 +87,10 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
         /// <exception cref="T:System.InvalidOperationException">The collection was modified after the enumerator was created.</exception>
         public void Reset()
         {
-            _enumerators.ForEach(x => Reset());
+            foreach (var enumerator in _enumerators)
+            {
+                enumerator.Reset();
+            }
         }
 
         /// <summary>
@@ -110,14 +110,17 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
         /// </summary>
         public void Dispose()
         {
-            _enumerators.ForEach(x => x.DisposeSafely());
+            foreach (var enumerator in _enumerators)
+            {
+                enumerator.DisposeSafely();
+            }
         }
 
-        private bool DataPointEmitted(IEnumerable<IEnumerator<BaseData>> enumerators, DateTime frontier)
+        private bool DataPointEmitted(IEnumerable<IEnumerator<BaseData>> enumerators, DateTime frontierUtc)
         {
             // check if any enumerator is ready to emit
             var enumerator = enumerators
-                .Where(x => x.Current != null && x.Current.EndTime <= frontier)
+                .Where(x => x.Current != null && x.Current.EndTime.ConvertToUtc(_exchangeTimeZone) <= frontierUtc)
                 .OrderBy(x => x.Current?.EndTime)
                 .FirstOrDefault();
 
