@@ -67,8 +67,7 @@ namespace QuantConnect.Lean.Engine.DataFeeds.Enumerators
                 return true;
 
             // advance enumerators with no current data
-            var enumeratorsAdvanced = new List<IEnumerator<BaseData>>(_enumerators.Length);
-            enumeratorsAdvanced.AddRange(_enumerators.Where(enumerator => enumerator.Current == null && enumerator.MoveNext()));
+            var enumeratorsAdvanced = _enumerators.Where(enumerator => enumerator.Current == null && enumerator.MoveNext());
 
             // check if any enumerator is ready to emit
             if (DataPointEmitted(enumeratorsAdvanced, frontierUtc))
